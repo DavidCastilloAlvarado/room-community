@@ -22,6 +22,10 @@ Browser-to-browser audio and video broadcasting using WebRTC. One broadcaster, m
 
 ```
 stream/
+├── .github/
+│   └── workflows/         # GitHub Actions workflows
+│       ├── pr-check.yml   # PR checks (lint + build)
+│       └── deploy.yml     # Cloud Build deployment
 ├── broadcast/              # Main application package
 │   ├── __init__.py        # Package initialization
 │   ├── app.py             # Flask app factory and SocketIO setup
@@ -30,6 +34,9 @@ stream/
 │   └── schemas.py         # Marshmallow validation schemas
 ├── templates/             # HTML templates
 │   └── broadcast.html     # Main broadcast interface
+├── Dockerfile             # Multi-stage Docker build
+├── .dockerignore          # Docker build exclusions
+├── cloudbuild.yaml        # Google Cloud Build configuration
 ├── run.py                 # Application entry point
 ├── pyproject.toml         # Poetry dependencies and configuration
 └── README.md              # This file
@@ -68,6 +75,64 @@ poetry run python run.py
 ```
 
 Server runs on `http://0.0.0.0:3000`
+
+## Docker Deployment
+
+### Build Docker Image
+
+```bash
+docker build -t broadcast-app .
+```
+
+### Run Docker Container
+
+```bash
+docker run -p 3000:3000 broadcast-app
+```
+
+Access at `http://localhost:3000`
+
+### Multi-stage Build
+
+The Dockerfile uses a two-stage build:
+1. **Builder stage**: Python 3.12 Bullseye - installs Poetry and dependencies
+2. **Runtime stage**: Python 3.12 Slim Bullseye - minimal image with only runtime dependencies
+
+## Cloud Deployment
+
+### Google Cloud Run
+
+The project includes automated deployment to Google Cloud Run via GitHub Actions.
+
+**Setup Requirements:**
+
+1. **GitHub Secrets** (Settings → Secrets → Actions):
+   - `GCP_PROJECT_ID`: Your Google Cloud project ID
+   - `GCP_SA_KEY`: Service account JSON key
+
+2. **GCP Service Account Permissions**:
+   - Cloud Build Editor
+   - Cloud Run Admin
+   - Service Account User
+   - Storage Admin
+
+**Deployment Trigger:**
+- Automatically deploys on push to `main`/`master` branches
+- Creates a GitHub release with version tag
+- Runs in `production` environment
+
+**Cloud Run Configuration:**
+- 1 CPU
+- 1GB memory
+- Max 1 instance
+- Port 3000
+- Public access (unauthenticated)
+
+**View deployment logs:**
+```bash
+gcloud builds list --limit=5
+gcloud builds log <BUILD_ID>
+```
 
 ## Usage
 
@@ -131,10 +196,17 @@ Ruff is configured in `pyproject.toml` with:
 
 ### CI/CD
 
-GitHub Actions workflow automatically runs on pull requests:
-- **PR Check**: Runs `poetry run poe ruff` to validate code quality
-- Triggers on: Pull requests and pushes to `main`/`master` branches
-- Configuration: `.github/workflows/pr-check.yml`
+**Pull Request Checks** (`.github/workflows/pr-check.yml`):
+- **lint**: Runs Ruff code quality checks
+- **build**: Builds Docker image to verify build succeeds
+- Triggers on: Pull requests and pushes to `main`/`master`
+
+**Deployment** (`.github/workflows/deploy.yml`):
+- Builds Docker image via Google Cloud Build
+- Deploys to Google Cloud Run
+- Creates GitHub release with version tag
+- Triggers on: Push to `main`/`master` branches
+- Environment: `production`
 
 ## Technical Details
 
