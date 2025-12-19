@@ -17,6 +17,8 @@ jobs:
     name: Build and Deploy
     runs-on: ubuntu-latest
     environment: production
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
