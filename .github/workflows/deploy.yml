@@ -35,9 +35,7 @@ jobs:
           gcloud builds submit \
             --config=cloudbuild.yaml \
             --substitutions=COMMIT_SHA=${{ github.sha }} \
-            --project=${{ env.PROJECT_ID }} \
-            --format=json \
-            --stream-logs
+            --project=${{ env.PROJECT_ID }}
 
       - name: Create Release
         uses: actions/create-release@v1
