@@ -34,7 +34,7 @@ jobs:
 
       - name: Submit to Cloud Build
         run: |
-          gcloud beta builds submit \
+          gcloud builds submit \
             --config=cloudbuild.yaml \
             --substitutions=COMMIT_SHA=${{ github.sha }} \
             --project=${{ env.PROJECT_ID }}
