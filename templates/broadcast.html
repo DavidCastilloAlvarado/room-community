@@ -583,8 +583,16 @@
                     <span class="status-dot"></span>
                     <span id="channelText">LIVE</span>
                 </div>
+                <div id="roleBadge" class="role-badge"></div>
             </div>
-            <div id="roleBadge" class="role-badge"></div>
+            <div class="header-right" style="display: flex; align-items: center; gap: 16px;">
+                <div class="mode-switch">
+                    <a href="?broadcaster=true">Broadcaster Mode</a> • 
+                    <a href="?viewer=true">Viewer Mode</a>
+                </div>
+                <button id="btn" disabled>Loading...</button>
+                <button id="stopBtn" class="danger hidden">Stop Broadcasting</button>
+            </div>
         </div>
         
         <div class="video-area">
@@ -629,16 +637,6 @@
                 <div id="aliasError" class="alias-error hidden"></div>
                 <button id="setAliasBtn">Join Chat</button>
             </div>
-        </div>
-        
-        <div class="controls-bar">
-            <button id="btn" disabled>Loading...</button>
-            <button id="stopBtn" class="danger hidden">Stop Broadcasting</button>
-        </div>
-        
-        <div class="mode-switch">
-            <a href="?broadcaster=true">Broadcaster Mode</a> • 
-            <a href="?viewer=true">Viewer Mode</a>
         </div>
     </div>
     
