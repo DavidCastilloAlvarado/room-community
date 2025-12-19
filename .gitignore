@@ -25,3 +25,7 @@ poetry.lock
 # OS
 .DS_Store
 Thumbs.db
+
+# GCP credentials
+key.json
+*.json
