@@ -16,6 +16,7 @@ poetry.lock
 
 # IDE
 .vscode/
+.ruff_cache/
 .idea/
 *.swp
 *.swo
