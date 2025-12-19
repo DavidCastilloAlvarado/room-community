@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📹🔊 Audio & Video Broadcast</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: white;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-width: 1200px;
+            width: 100%;
+        }
+        
+        h1 { text-align: center; margin-bottom: 20px; font-size: 2.5em; }
+        
+        .role { text-align: center; font-size: 1.3em; font-weight: bold; margin-bottom: 15px; }
+        .broadcaster { color: #ff4444; }
+        .viewer { color: #44ff44; }
+        
+        .status {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .live {
+            display: inline-block;
+            background: #ff4444;
+            padding: 8px 20px;
+            border-radius: 25px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .video-container {
+            position: relative;
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            min-height: 450px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        video {
+            width: 100%;
+            max-height: 70vh;
+        }
+        
+        .controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 50px;
+            font-size: 1.2em;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        
+        button:hover { background: #45a049; transform: scale(1.05); }
+        button:disabled { background: #666; cursor: not-allowed; }
+        
+        .info {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            line-height: 1.8;
+        }
+        
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📹🔊 Live Broadcast</h1>
+        <div id="role" class="role"></div>
+        <div id="status" class="status">Connecting...</div>
+        
+        <div class="video-container">
+            <video id="localVideo" class="hidden" autoplay muted playsinline></video>
+            <video id="remoteVideo" class="hidden" autoplay playsinline></video>
+            <div id="waiting">⏳ Waiting...</div>
+        </div>
+        
+        <div class="controls">
+            <button id="btn" disabled>LOADING...</button>
+        </div>
+        
+        <div class="info" id="info"></div>
+    </div>
+    
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        let localStream, peerConnection;
+        let isBroadcaster = false;
+        let clientId;
+        const broadcasterConnections = new Map();
+        
+        const config = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
+        
+        const localVideo = document.getElementById('localVideo');
+        const remoteVideo = document.getElementById('remoteVideo');
+        const btn = document.getElementById('btn');
+        const status = document.getElementById('status');
+        const role = document.getElementById('role');
+        const info = document.getElementById('info');
+        const waiting = document.getElementById('waiting');
+        
+        socket.on('client_id', (data) => {
+            clientId = data.id;
+            checkRole();
+        });
+        
+        function checkRole() {
+            const params = new URLSearchParams(window.location.search);
+            const forceViewer = params.get('viewer') === 'true';
+            
+            if (forceViewer) {
+                setupViewer();
+            } else {
+                // First connection is broadcaster
+                socket.emit('join_as_broadcaster');
+            }
+        }
+        
+        socket.on('broadcaster_ready', () => {
+            isBroadcaster = true;
+            role.textContent = '📹 BROADCASTER';
+            role.className = 'role broadcaster';
+            status.textContent = 'Ready to broadcast';
+            btn.textContent = 'START BROADCASTING';
+            btn.disabled = false;
+            info.innerHTML = '✅ You are the broadcaster<br>📱 Share this URL with viewers: <strong>' + window.location.origin + '?viewer=true</strong>';
+        });
+        
+        socket.on('error', (data) => {
+            status.textContent = '⚠️ ' + data.message;
+            setupViewer();
+        });
+        
+        function setupViewer() {
+            isBroadcaster = false;
+            role.textContent = '👁️ VIEWER';
+            role.className = 'role viewer';
+            socket.emit('join_as_viewer');
+        }
+        
+        socket.on('waiting_for_broadcaster', () => {
+            status.textContent = 'Waiting for broadcaster...';
+            info.textContent = '⏳ No active broadcast. Waiting for broadcaster to start.';
+            btn.textContent = 'WAITING';
+            btn.disabled = true;
+        });
+        
+        let broadcasterSocketId = null;
+        
+        socket.on('broadcaster_available', async (data) => {
+            broadcasterSocketId = data.broadcaster_id;
+            status.textContent = 'Broadcaster found!';
+            btn.textContent = 'WATCH STREAM';
+            btn.disabled = false;
+            info.textContent = '✅ Broadcaster is online. Click button to watch!';
+        });
+        
+        socket.on('broadcaster_joined', (data) => {
+            if (!isBroadcaster) {
+                broadcasterSocketId = data.id;
+                status.textContent = 'Broadcaster online!';
+                btn.textContent = 'WATCH STREAM';
+                btn.disabled = false;
+            }
+        });
+        
+        btn.onclick = async () => {
+            if (isBroadcaster) {
+                await startBroadcasting();
+            } else {
+                await startWatching();
+            }
+        };
+        
+        async function startBroadcasting() {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 1280, height: 720 },
+                    audio: true
+                });
+                
+                localVideo.srcObject = localStream;
+                localVideo.classList.remove('hidden');
+                waiting.classList.add('hidden');
+                
+                status.innerHTML = '<span class="live">🔴 BROADCASTING</span>';
+                btn.textContent = 'BROADCASTING...';
+                btn.disabled = true;
+                info.innerHTML = '🔴 You are LIVE!<br>📊 Stream: Video + Audio<br>📱 Viewer URL: <strong>' + window.location.origin + '?viewer=true</strong>';
+                
+            } catch (err) {
+                alert('Could not access camera/microphone: ' + err.message);
+            }
+        }
+        
+        async function startWatching() {
+            try {
+                waiting.textContent = 'Connecting to stream...';
+                
+                peerConnection = new RTCPeerConnection(config);
+                
+                // Add transceivers to receive audio and video
+                peerConnection.addTransceiver('video', { direction: 'recvonly' });
+                peerConnection.addTransceiver('audio', { direction: 'recvonly' });
+                
+                peerConnection.ontrack = (event) => {
+                    console.log('Received track:', event.track.kind);
+                    if (!remoteVideo.srcObject) {
+                        remoteVideo.srcObject = new MediaStream();
+                    }
+                    remoteVideo.srcObject.addTrack(event.track);
+                    remoteVideo.classList.remove('hidden');
+                    waiting.classList.add('hidden');
+                    status.innerHTML = '<span class="live">🔴 WATCHING LIVE</span>';
+                    btn.disabled = true;
+                    info.textContent = '📺 Watching live broadcast with audio!';
+                };
+                
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        socket.emit('ice_candidate', {
+                            target: broadcasterSocketId,
+                            candidate: event.candidate
+                        });
+                    }
+                };
+                
+                peerConnection.oniceconnectionstatechange = () => {
+                    console.log('ICE state:', peerConnection.iceConnectionState);
+                    if (peerConnection.iceConnectionState === 'failed') {
+                        waiting.textContent = 'Connection failed. Try again.';
+                        info.textContent = '❌ Connection failed. Refresh and try again.';
+                    }
+                };
+                
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                
+                console.log('Sending offer to broadcaster:', broadcasterSocketId);
+                socket.emit('offer', {
+                    target: broadcasterSocketId,
+                    sdp: offer
+                });
+                
+            } catch (err) {
+                alert('Error connecting: ' + err.message);
+            }
+        }
+        
+        socket.on('offer', async (data) => {
+            if (!isBroadcaster || !localStream) {
+                console.log('Ignoring offer - not broadcaster or no stream');
+                return;
+            }
+            
+            console.log('Received offer from viewer:', data.sender);
+            
+            const pc = new RTCPeerConnection(config);
+            broadcasterConnections.set(data.sender, pc);
+            
+            // Add all tracks to the connection
+            localStream.getTracks().forEach(track => {
+                console.log('Adding track to peer:', track.kind);
+                pc.addTrack(track, localStream);
+            });
+            
+            pc.onicecandidate = (event) => {
+                if (event.candidate) {
+                    socket.emit('ice_candidate', {
+                        target: data.sender,
+                        candidate: event.candidate
+                    });
+                }
+            };
+            
+            pc.oniceconnectionstatechange = () => {
+                console.log('Broadcaster ICE state with viewer:', pc.iceConnectionState);
+            };
+            
+            await pc.setRemoteDescription(data.sdp);
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            
+            console.log('Sending answer to viewer:', data.sender);
+            socket.emit('answer', {
+                target: data.sender,
+                sdp: answer
+            });
+        });
+        
+        socket.on('answer', async (data) => {
+            if (peerConnection) {
+                await peerConnection.setRemoteDescription(data.sdp);
+            }
+        });
+        
+        socket.on('ice_candidate', async (data) => {
+            const pc = isBroadcaster ? broadcasterConnections.get(data.sender) : peerConnection;
+            if (pc) {
+                await pc.addIceCandidate(data.candidate);
+            }
+        });
+        
+        socket.on('broadcaster_disconnected', () => {
+            if (!isBroadcaster) {
+                status.textContent = 'Broadcaster disconnected';
+                info.textContent = '⚠️ The broadcaster has gone offline.';
+                remoteVideo.classList.add('hidden');
+                waiting.classList.remove('hidden');
+                waiting.textContent = 'Broadcast ended';
+            }
+        });
+    </script>
+</body>
+</html>
