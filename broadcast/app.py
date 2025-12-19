@@ -6,6 +6,8 @@ from cachetools import TTLCache
 from flask import Flask
 from flask_socketio import SocketIO
 
+from . import routes
+
 # Initialize Flask-SocketIO
 socketio = SocketIO()
 
@@ -26,10 +28,6 @@ def create_app():
     socketio.init_app(app, cors_allowed_origins="*", async_mode="threading")
 
     # Register routes
-    from . import routes
-
     app.register_blueprint(routes.bp)
-
-    # Register Socket.IO event handlers
 
     return app
