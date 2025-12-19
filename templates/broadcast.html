@@ -363,6 +363,83 @@
             cursor: not-allowed;
         }
         
+        /* Alias Modal */
+        .alias-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .alias-modal-content {
+            background: #202124;
+            padding: 32px;
+            border-radius: 16px;
+            max-width: 400px;
+            width: 90%;
+            border: 1px solid #3c4043;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        
+        .alias-modal h2 {
+            font-size: 1.5em;
+            margin-bottom: 8px;
+            color: #e8eaed;
+        }
+        
+        .alias-modal p {
+            color: #9aa0a6;
+            margin-bottom: 24px;
+            font-size: 0.95em;
+        }
+        
+        .alias-input {
+            width: 100%;
+            padding: 14px;
+            background: #3c4043;
+            border: 1px solid #5f6368;
+            border-radius: 8px;
+            color: #e8eaed;
+            font-size: 1em;
+            font-family: inherit;
+            margin-bottom: 20px;
+        }
+        
+        .alias-input:focus {
+            outline: none;
+            border-color: #8ab4f8;
+        }
+        
+        .alias-modal button {
+            width: 100%;
+            padding: 14px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 1em;
+            transition: all 0.2s;
+        }
+        
+        .alias-modal button:hover {
+            background: #1765cc;
+        }
+        
+        .alias-error {
+            color: #f28b82;
+            font-size: 0.85em;
+            margin-top: -12px;
+            margin-bottom: 12px;
+        }
+        
         /* Mobile Responsiveness */
         @media (max-width: 768px) {
             body {
@@ -535,10 +612,22 @@
                 <div class="chat-header">
                     💬 Send a Comment
                 </div>
+                <div id="chatError" class="hidden" style="padding: 8px 12px; margin: 0 12px; background: rgba(242, 139, 130, 0.2); border-radius: 8px; color: #f28b82; font-size: 0.85em;"></div>
                 <div class="chat-input-area">
                     <input type="text" id="messageInput" class="chat-input" placeholder="Type your message..." maxlength="200">
                     <button id="sendMessageBtn" class="chat-send-btn">Send</button>
                 </div>
+            </div>
+        </div>
+        
+        <!-- Alias Modal (for viewers to set their name) -->
+        <div id="aliasModal" class="alias-modal hidden">
+            <div class="alias-modal-content">
+                <h2>👤 Choose Your Name</h2>
+                <p>Enter a name to identify yourself in the chat:</p>
+                <input type="text" id="aliasInput" class="alias-input" placeholder="Your name..." maxlength="20">
+                <div id="aliasError" class="alias-error hidden"></div>
+                <button id="setAliasBtn">Join Chat</button>
             </div>
         </div>
         
@@ -585,6 +674,15 @@
         const chatInput = document.getElementById('chatInput');
         const messageInput = document.getElementById('messageInput');
         const sendMessageBtn = document.getElementById('sendMessageBtn');
+        const chatError = document.getElementById('chatError');
+        
+        // Alias modal elements
+        const aliasModal = document.getElementById('aliasModal');
+        const aliasInput = document.getElementById('aliasInput');
+        const setAliasBtn = document.getElementById('setAliasBtn');
+        const aliasError = document.getElementById('aliasError');
+        
+        let viewerAlias = null;
         
         socket.on('client_id', (data) => {
             clientId = data.id;
@@ -625,6 +723,21 @@
         });
         
         socket.on('error', (data) => {
+            // Handle alias validation errors
+            if (data.message && data.message.includes('Invalid alias')) {
+                aliasError.textContent = data.message;
+                aliasError.classList.remove('hidden');
+                return;
+            }
+            
+            // Handle chat validation errors separately
+            if (data.message && data.message.includes('Invalid message')) {
+                chatError.textContent = data.message;
+                chatError.classList.remove('hidden');
+                return;
+            }
+            
+            // Handle broadcaster/viewer errors
             if (data.can_takeover) {
                 infoPanel.classList.remove('hidden');
                 info.innerHTML = '<p style="color:#f28b82;">⚠️ ' + data.message + '</p><p>Another device is broadcasting. Click below to take over.</p>';
@@ -847,8 +960,13 @@
                     btn.disabled = true;
                     btn.classList.add('hidden');
                     
-                    // Show chat input for viewer
-                    chatInput.classList.remove('hidden');
+                    // Show alias modal for viewer to set their name
+                    if (!viewerAlias) {
+                        aliasModal.classList.remove('hidden');
+                        aliasInput.focus();
+                    } else {
+                        chatInput.classList.remove('hidden');
+                    }
                 };
                 
                 peerConnection.onicecandidate = (event) => {
@@ -963,10 +1081,47 @@
             }
         });
         
+        // Alias functionality
+        function setAlias() {
+            const alias = aliasInput.value.trim();
+            if (alias.length < 5) {
+                aliasError.textContent = 'Name must be at least 5 characters';
+                aliasError.classList.remove('hidden');
+                return;
+            }
+            
+            aliasError.classList.add('hidden');
+            socket.emit('set_alias', {
+                channel_id: channelId,
+                alias: alias
+            });
+        }
+        
+        setAliasBtn.onclick = setAlias;
+        
+        aliasInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                setAlias();
+            }
+        });
+        
+        socket.on('alias_set', (data) => {
+            if (data.success) {
+                viewerAlias = data.alias;
+                aliasModal.classList.add('hidden');
+                chatInput.classList.remove('hidden');
+                messageInput.focus();
+            }
+        });
+        
         // Chat functionality
         function sendMessage() {
             const message = messageInput.value.trim();
             if (message && channelId && !isBroadcaster) {
+                // Clear any previous errors
+                chatError.classList.add('hidden');
+                chatError.textContent = '';
+                
                 socket.emit('send_message', {
                     channel_id: channelId,
                     message: message

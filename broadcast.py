@@ -6,6 +6,8 @@ Broadcasts your PC camera and microphone to multiple viewers using WebRTC
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from cachetools import TTLCache
+from marshmallow import Schema, fields, validates, ValidationError, validate
+import re
 import time
 
 app = Flask(__name__)
@@ -15,6 +17,73 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 # Track channels/rooms with 1-hour TTL (auto-cleanup)
 # TTLCache(maxsize=100, ttl=3600) - stores max 100 channels, each expires after 1 hour
 channels = TTLCache(maxsize=100, ttl=3600)
+
+# Validation Schemas
+class ChannelIdField(fields.String):
+    """Custom field for alphanumeric channel IDs."""
+    def _deserialize(self, value, attr, data, **kwargs):
+        value = super()._deserialize(value, attr, data, **kwargs)
+        if value and not re.match(r'^[a-zA-Z0-9_-]+$', value):
+            raise ValidationError('Channel ID must be alphanumeric (letters, numbers, _, -)')
+        return value
+
+class BroadcasterJoinSchema(Schema):
+    """Schema for broadcaster join requests."""
+    channel_id = ChannelIdField(allow_none=True, validate=validate.Length(max=20))
+    force = fields.Boolean(load_default=False)
+
+class ViewerJoinSchema(Schema):
+    """Schema for viewer join requests."""
+    channel_id = ChannelIdField(allow_none=True, validate=validate.Length(max=20))
+
+class MessageSchema(Schema):
+    """Schema for viewer messages."""
+    channel_id = ChannelIdField(required=True, validate=validate.Length(min=1, max=20))
+    message = fields.String(required=True, validate=validate.Length(min=1, max=200))
+    
+    @validates('message')
+    def validate_message(self, value, **kwargs):
+        # Block only dangerous control characters, allow Unicode (including emojis)
+        # Block: NULL, control chars (0x00-0x1F), DEL (0x7F), but allow newlines/tabs
+        if re.search(r'[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]', value):
+            raise ValidationError('Message contains invalid control characters')
+        
+        # Prevent potential XSS by blocking script-like patterns
+        dangerous_patterns = [
+            r'<script[^>]*>',
+            r'javascript:',
+            r'onerror\s*=',
+            r'onclick\s*=',
+            r'onload\s*='
+        ]
+        for pattern in dangerous_patterns:
+            if re.search(pattern, value, re.IGNORECASE):
+                raise ValidationError('Message contains potentially dangerous content')
+
+class StopBroadcastSchema(Schema):
+    """Schema for stop broadcast requests."""
+    channel_id = ChannelIdField(required=True, validate=validate.Length(min=1, max=20))
+
+class SetAliasSchema(Schema):
+    """Schema for setting viewer alias."""
+    channel_id = ChannelIdField(required=True, validate=validate.Length(min=1, max=20))
+    alias = fields.String(
+        required=True,
+        validate=validate.Length(min=5, max=20)
+    )
+    
+    @validates('alias')
+    def validate_alias(self, value, **kwargs):
+        # Allow letters, numbers, spaces, underscores, hyphens
+        if not re.match(r'^[a-zA-Z0-9\s_-]+$', value.strip()):
+            raise ValidationError('Alias must contain only letters, numbers, spaces, _ or -')
+
+# Schema instances
+broadcaster_join_schema = BroadcasterJoinSchema()
+viewer_join_schema = ViewerJoinSchema()
+message_schema = MessageSchema()
+stop_broadcast_schema = StopBroadcastSchema()
+set_alias_schema = SetAliasSchema()
 
 @app.route('/')
 def index():
@@ -48,11 +117,20 @@ def handle_disconnect():
 def handle_join_broadcaster(data=None):
     """Handle broadcaster joining - creates a new channel."""
     import uuid
-    channel_id = data.get('channel_id') if data else None
+    
+    # Validate input
+    try:
+        data = data or {}
+        validated_data = broadcaster_join_schema.load(data)
+    except ValidationError as err:
+        emit('error', {'message': f'Invalid data: {err.messages}'})
+        return
+    
+    channel_id = validated_data.get('channel_id')
     
     if not channel_id:
-        # Generate unique channel ID
-        channel_id = str(uuid.uuid4())[:8]
+        # Generate unique channel ID (alphanumeric, 8 chars)
+        channel_id = str(uuid.uuid4()).replace('-', '')[:8]
     
     # Check if channel already exists
     if channel_id in channels:
@@ -63,6 +141,7 @@ def handle_join_broadcaster(data=None):
     channels[channel_id] = {
         'broadcaster': request.sid,
         'viewers': set(),
+        'viewer_aliases': {},  # {viewer_sid: alias}
         'created_at': time.time(),
         'last_activity': time.time()
     }
@@ -73,7 +152,15 @@ def handle_join_broadcaster(data=None):
 @socketio.on('join_as_viewer')
 def handle_join_viewer(data=None):
     """Handle viewer joining a specific channel."""
-    channel_id = data.get('channel_id') if data else None
+    # Validate input
+    try:
+        data = data or {}
+        validated_data = viewer_join_schema.load(data)
+    except ValidationError as err:
+        emit('error', {'message': f'Invalid data: {err.messages}'})
+        return
+    
+    channel_id = validated_data.get('channel_id')
     
     if not channel_id:
         # Return list of active channels from TTL cache
@@ -158,36 +245,89 @@ def handle_ice_candidate(data):
 @socketio.on('stop_broadcast')
 def handle_stop_broadcast(data):
     """Handle broadcaster stopping their broadcast."""
-    channel_id = data.get('channel_id')
+    # Validate input
+    try:
+        validated_data = stop_broadcast_schema.load(data)
+    except ValidationError as err:
+        emit('error', {'message': f'Invalid data: {err.messages}'})
+        return
     
-    if channel_id and channel_id in channels:
-        if channels[channel_id]['broadcaster'] == request.sid:
-            print(f"Broadcaster stopped broadcast on channel: {channel_id}")
-            # Notify all viewers
-            for viewer in channels[channel_id]['viewers']:
-                emit('broadcaster_stopped', {'channel_id': channel_id}, room=viewer)
+    channel_id = validated_data['channel_id']
+    
+    if channel_id not in channels:
+        emit('error', {'message': 'Channel not found or expired'})
+        return
+    
+    if channels[channel_id]['broadcaster'] != request.sid:
+        emit('error', {'message': 'You are not the broadcaster of this channel'})
+        return
+    
+    print(f"Broadcaster stopped broadcast on channel: {channel_id}")
+    # Notify all viewers
+    for viewer in channels[channel_id]['viewers']:
+        emit('broadcaster_stopped', {'channel_id': channel_id}, room=viewer)
+
+@socketio.on('set_alias')
+def handle_set_alias(data):
+    """Set viewer alias for chat messages."""
+    # Validate input
+    try:
+        validated_data = set_alias_schema.load(data)
+    except ValidationError as err:
+        emit('error', {'message': f'Invalid alias: {err.messages}'})
+        return
+    
+    channel_id = validated_data['channel_id']
+    alias = validated_data['alias'].strip()
+    
+    if channel_id not in channels:
+        emit('error', {'message': 'Channel not found or expired'})
+        return
+    
+    # Only allow viewers to set aliases
+    if request.sid not in channels[channel_id]['viewers']:
+        emit('error', {'message': 'You must be a viewer in this channel'})
+        return
+    
+    # Store alias
+    channels[channel_id]['viewer_aliases'][request.sid] = alias
+    print(f"Viewer {request.sid[:8]} set alias: {alias} in channel {channel_id}")
+    
+    emit('alias_set', {'alias': alias, 'success': True})
 
 @socketio.on('send_message')
 def handle_send_message(data):
     """Forward viewer message to broadcaster (ephemeral - no persistence)."""
-    channel_id = data.get('channel_id')
-    message = data.get('message', '').strip()
-    
-    if not message or not channel_id:
+    # Validate input
+    try:
+        validated_data = message_schema.load(data)
+    except ValidationError as err:
+        emit('error', {'message': f'Invalid message: {err.messages}'})
         return
     
-    if channel_id in channels:
-        # Only allow viewers to send messages
-        if request.sid in channels[channel_id]['viewers']:
-            broadcaster_sid = channels[channel_id]['broadcaster']
-            print(f"Message from viewer {request.sid[:8]} to channel {channel_id}: {message[:50]}...")
-            
-            # Forward to broadcaster
-            emit('new_message', {
-                'sender_id': request.sid[:8],  # Short viewer ID
-                'message': message,
-                'timestamp': time.time()
-            }, room=broadcaster_sid)
+    channel_id = validated_data['channel_id']
+    message = validated_data['message'].strip()
+    
+    if channel_id not in channels:
+        emit('error', {'message': 'Channel not found or expired'})
+        return
+    
+    # Only allow viewers to send messages
+    if request.sid not in channels[channel_id]['viewers']:
+        emit('error', {'message': 'You must be a viewer in this channel to send messages'})
+        return
+    
+    # Get viewer alias or use short ID
+    viewer_name = channels[channel_id]['viewer_aliases'].get(request.sid, f'Viewer-{request.sid[:8]}')
+    broadcaster_sid = channels[channel_id]['broadcaster']
+    print(f"Message from {viewer_name} to channel {channel_id}: {message[:50]}...")
+    
+    # Forward to broadcaster
+    emit('new_message', {
+        'sender_id': viewer_name,
+        'message': message,
+        'timestamp': time.time()
+    }, room=broadcaster_sid)
 
 if __name__ == '__main__':
     import os
