@@ -167,6 +167,28 @@ def handle_stop_broadcast(data):
             for viewer in channels[channel_id]['viewers']:
                 emit('broadcaster_stopped', {'channel_id': channel_id}, room=viewer)
 
+@socketio.on('send_message')
+def handle_send_message(data):
+    """Forward viewer message to broadcaster (ephemeral - no persistence)."""
+    channel_id = data.get('channel_id')
+    message = data.get('message', '').strip()
+    
+    if not message or not channel_id:
+        return
+    
+    if channel_id in channels:
+        # Only allow viewers to send messages
+        if request.sid in channels[channel_id]['viewers']:
+            broadcaster_sid = channels[channel_id]['broadcaster']
+            print(f"Message from viewer {request.sid[:8]} to channel {channel_id}: {message[:50]}...")
+            
+            # Forward to broadcaster
+            emit('new_message', {
+                'sender_id': request.sid[:8],  # Short viewer ID
+                'message': message,
+                'timestamp': time.time()
+            }, room=broadcaster_sid)
+
 if __name__ == '__main__':
     import os
     import ssl

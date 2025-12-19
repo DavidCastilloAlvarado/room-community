@@ -257,11 +257,129 @@
         
         .hidden { display: none !important; }
         
+        /* Chat Panel Styles */
+        .chat-panel {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            width: 320px;
+            max-height: 400px;
+            background: rgba(32, 33, 36, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 12px;
+            border: 1px solid #3c4043;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #3c4043;
+            font-weight: 500;
+            font-size: 0.95em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            max-height: 300px;
+            min-height: 200px;
+        }
+        
+        .chat-message {
+            background: #3c4043;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            animation: slideIn 0.2s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .chat-message-sender {
+            font-size: 0.75em;
+            color: #8ab4f8;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .chat-message-text {
+            font-size: 0.9em;
+            color: #e8eaed;
+            word-wrap: break-word;
+        }
+        
+        .chat-input-area {
+            padding: 12px;
+            border-top: 1px solid #3c4043;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .chat-input {
+            flex: 1;
+            padding: 10px 12px;
+            background: #3c4043;
+            border: 1px solid #5f6368;
+            border-radius: 8px;
+            color: #e8eaed;
+            font-size: 0.9em;
+            font-family: inherit;
+        }
+        
+        .chat-input:focus {
+            outline: none;
+            border-color: #8ab4f8;
+        }
+        
+        .chat-send-btn {
+            padding: 10px 16px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+        
+        .chat-send-btn:hover {
+            background: #1765cc;
+        }
+        
+        .chat-send-btn:disabled {
+            background: #3c4043;
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
         /* Mobile Responsiveness */
         @media (max-width: 768px) {
+            body {
+                overflow-y: auto;
+            }
+            
+            .container {
+                height: auto;
+                min-height: 100vh;
+            }
+            
             .header {
                 padding: 12px 16px;
                 flex-wrap: wrap;
+                position: sticky;
+                top: 0;
+                z-index: 100;
             }
             
             .logo {
@@ -279,11 +397,46 @@
             }
             
             .video-area {
-                padding: 12px;
+                flex: none;
+                min-height: 50vh;
+                padding: 0;
+                display: flex;
+                flex-direction: column;
+                position: relative;
             }
             
             .video-container {
-                border-radius: 8px;
+                border-radius: 0;
+                flex: 1;
+                min-height: 50vh;
+            }
+            
+            .info-panel {
+                position: relative;
+                top: auto;
+                right: auto;
+                left: auto;
+                max-width: none;
+                padding: 16px;
+                margin: 0;
+                border-radius: 0;
+                width: 100%;
+            }
+            
+            .chat-panel {
+                position: relative;
+                bottom: auto;
+                right: auto;
+                left: auto;
+                width: 100%;
+                max-height: none;
+                border-radius: 0;
+                margin: 0;
+            }
+            
+            .chat-messages {
+                max-height: 200px;
+                min-height: 150px;
             }
             
             .controls-bar {
@@ -296,14 +449,6 @@
                 font-size: 0.9em;
                 width: 100%;
                 justify-content: center;
-            }
-            
-            .info-panel {
-                top: 12px;
-                right: 12px;
-                left: 12px;
-                max-width: none;
-                padding: 16px;
             }
             
             .mode-switch {
@@ -376,6 +521,25 @@
                 <h3>📺 Channel Information</h3>
                 <div id="info"></div>
             </div>
+            
+            <!-- Chat Panel (for broadcaster to see comments) -->
+            <div id="chatPanel" class="chat-panel hidden">
+                <div class="chat-header">
+                    💬 Viewer Comments
+                </div>
+                <div id="chatMessages" class="chat-messages"></div>
+            </div>
+            
+            <!-- Chat Input (for viewers to send comments) -->
+            <div id="chatInput" class="chat-panel hidden">
+                <div class="chat-header">
+                    💬 Send a Comment
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" id="messageInput" class="chat-input" placeholder="Type your message..." maxlength="200">
+                    <button id="sendMessageBtn" class="chat-send-btn">Send</button>
+                </div>
+            </div>
         </div>
         
         <div class="controls-bar">
@@ -414,6 +578,13 @@
         const waiting = document.getElementById('waiting');
         const channelBadge = document.getElementById('channelBadge');
         const channelText = document.getElementById('channelText');
+        
+        // Chat elements
+        const chatPanel = document.getElementById('chatPanel');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const messageInput = document.getElementById('messageInput');
+        const sendMessageBtn = document.getElementById('sendMessageBtn');
         
         socket.on('client_id', (data) => {
             clientId = data.id;
@@ -603,6 +774,10 @@
                 
                 btn.classList.add('hidden');
                 stopBtn.classList.remove('hidden');
+                
+                // Show chat panel for broadcaster
+                chatPanel.classList.remove('hidden');
+                
                 const viewerUrl = window.location.origin + '?viewer=true&channel=' + channelId;
                 info.innerHTML = '🔴 You are LIVE!<br>📺 Channel ID: <strong>' + channelId + '</strong><br>📊 Stream: Video + Audio<br>📱 Viewer URL: <strong>' + viewerUrl + '</strong>';
                 
@@ -636,6 +811,10 @@
             btn.className = 'primary';
             btn.disabled = false;
             
+            // Hide and clear chat panel
+            chatPanel.classList.add('hidden');
+            chatMessages.innerHTML = '';
+            
             infoPanel.classList.remove('hidden');
             info.innerHTML = '<p style="color:#f28b82;">⏹️ Broadcast stopped</p><p style="color:#9aa0a6;">Click "Start Broadcasting" to go live again</p>';
             
@@ -667,6 +846,9 @@
                     waiting.classList.add('hidden');
                     btn.disabled = true;
                     btn.classList.add('hidden');
+                    
+                    // Show chat input for viewer
+                    chatInput.classList.remove('hidden');
                 };
                 
                 peerConnection.onicecandidate = (event) => {
@@ -774,8 +956,58 @@
                 waiting.classList.remove('hidden');
                 waiting.textContent = '⏸️ Broadcaster stopped the stream';
                 
+                chatInput.classList.add('hidden');
+                
                 infoPanel.classList.remove('hidden');
                 info.innerHTML = '<p style="color:#f28b82;">⏸️ Broadcast ended</p><p style="color:#9aa0a6;">The broadcaster has stopped streaming</p>';
+            }
+        });
+        
+        // Chat functionality
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message && channelId && !isBroadcaster) {
+                socket.emit('send_message', {
+                    channel_id: channelId,
+                    message: message
+                });
+                messageInput.value = '';
+            }
+        }
+        
+        sendMessageBtn.onclick = sendMessage;
+        
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Receive messages (broadcaster only)
+        socket.on('new_message', (data) => {
+            if (isBroadcaster) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'chat-message';
+                
+                const senderDiv = document.createElement('div');
+                senderDiv.className = 'chat-message-sender';
+                senderDiv.textContent = 'Viewer ' + data.sender_id;
+                
+                const textDiv = document.createElement('div');
+                textDiv.className = 'chat-message-text';
+                textDiv.textContent = data.message;
+                
+                messageDiv.appendChild(senderDiv);
+                messageDiv.appendChild(textDiv);
+                chatMessages.appendChild(messageDiv);
+                
+                // Auto-scroll to bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                // Optional: show notification if many messages
+                if (chatMessages.children.length > 50) {
+                    chatMessages.removeChild(chatMessages.firstChild);
+                }
             }
         });
     </script>
