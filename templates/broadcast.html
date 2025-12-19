@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>📹🔊 Audio & Video Broadcast</title>
+    
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ adsense_client }}"
+            crossorigin="anonymous"></script>
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -253,6 +258,77 @@
         
         .mode-switch a:hover {
             text-decoration: underline;
+        }
+        
+        /* Ad Banner Styles */
+        .ad-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #3c4043;
+            transition: all 0.3s ease;
+        }
+        
+        .ad-banner.hidden {
+            display: none;
+        }
+        
+        .ad-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: white;
+        }
+        
+        .ad-content ins.adsbygoogle {
+            flex: 1;
+            min-height: 60px;
+        }
+        
+        .ad-toggle {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        
+        .ad-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .ad-toggle-btn {
+            position: fixed;
+            top: 80px;
+            right: 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            z-index: 1000;
+            transition: all 0.2s;
+        }
+        
+        .ad-toggle-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        
+        .ad-toggle-btn.hidden {
+            display: none;
         }
         
         .hidden { display: none !important; }
@@ -595,6 +671,23 @@
             </div>
         </div>
         
+        <!-- Ad Banner -->
+        <div id="adBanner" class="ad-banner">
+            <div class="ad-content">
+                <!-- Google AdSense Ad Unit -->
+                <ins class="adsbygoogle"
+                     style="display:block"
+                     data-ad-client="{{ adsense_client }}"
+                     data-ad-slot="{{ adsense_slot }}"
+                     data-ad-format="auto"
+                     data-full-width-responsive="true"></ins>
+                <button class="ad-toggle" onclick="toggleAds()">Hide Ads</button>
+            </div>
+        </div>
+        
+        <!-- Floating Ad Toggle Button (shown when banner is hidden) -->
+        <button id="adToggleBtn" class="ad-toggle-btn hidden" onclick="toggleAds()">Show Ads</button>
+        
         <div class="video-area">
             <div class="video-container">
                 <video id="localVideo" class="hidden" autoplay muted playsinline></video>
@@ -642,6 +735,44 @@
     
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script>
+        // Ad Banner Toggle Function
+        function toggleAds() {
+            const adBanner = document.getElementById('adBanner');
+            const adToggleBtn = document.getElementById('adToggleBtn');
+            
+            if (adBanner.classList.contains('hidden')) {
+                adBanner.classList.remove('hidden');
+                adToggleBtn.classList.add('hidden');
+                localStorage.setItem('adsVisible', 'true');
+                // Re-initialize AdSense ads when shown
+                try {
+                    (adsbygoogle = window.adsbygoogle || []).push({});
+                } catch (e) {
+                    console.log('AdSense error:', e);
+                }
+            } else {
+                adBanner.classList.add('hidden');
+                adToggleBtn.classList.remove('hidden');
+                localStorage.setItem('adsVisible', 'false');
+            }
+        }
+        
+        // Restore ad preference on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const adsVisible = localStorage.getItem('adsVisible');
+            if (adsVisible === 'false') {
+                document.getElementById('adBanner').classList.add('hidden');
+                document.getElementById('adToggleBtn').classList.remove('hidden');
+            } else {
+                // Initialize AdSense ads on page load
+                try {
+                    (adsbygoogle = window.adsbygoogle || []).push({});
+                } catch (e) {
+                    console.log('AdSense error:', e);
+                }
+            }
+        });
+        
         const socket = io();
         let localStream, peerConnection;
         let isBroadcaster = false;
