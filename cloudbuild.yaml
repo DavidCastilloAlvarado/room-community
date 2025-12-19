@@ -50,5 +50,4 @@ images:
   - 'gcr.io/$PROJECT_ID/broadcast-app:latest'
 
 options:
-  machineType: 'N1_HIGHCPU_8'
   logging: CLOUD_LOGGING_ONLY

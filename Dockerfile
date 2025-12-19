@@ -2,8 +2,8 @@
 ARG PYTHON_VERSION_SLIM=3.12-slim-bullseye
 ARG PYTHON_VERSION=3.12-bullseye
 
-# define an alias for the specific python version used in this file.
-FROM public.ecr.aws/docker/library/python:${PYTHON_VERSION} AS builder
+# Use python images directly (Cloud Build has better access)
+FROM python:${PYTHON_VERSION} AS builder
 
 WORKDIR /app
 
@@ -19,7 +19,7 @@ RUN poetry config virtualenvs.create false \
     && poetry install --no-interaction --no-ansi --no-root --only main
 
 # Deploy stage
-FROM public.ecr.aws/docker/library/python:${PYTHON_VERSION_SLIM}
+FROM python:${PYTHON_VERSION_SLIM}
 
 WORKDIR /app
 
