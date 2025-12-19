@@ -45,29 +45,29 @@ poetry install
 
 ## Running the Server
 
-### Basic (HTTP - localhost only)
+### Development Mode
+
+```bash
+poetry run poe dev
+```
+
+Runs with Flask's built-in development server on `http://0.0.0.0:3000`
+
+### Production Mode
+
+```bash
+poetry run poe prod
+```
+
+Runs with Gunicorn + Eventlet workers (production-ready) on `http://0.0.0.0:3000`
+
+### Direct Execution
 
 ```bash
 poetry run python run.py
 ```
 
 Server runs on `http://0.0.0.0:3000`
-
-### With SSL (HTTPS - for network access)
-
-Generate self-signed certificate:
-
-```bash
-openssl req -x509 -newkey rsa:4096 -nodes -out cert.pem -keyout key.pem -days 365 -subj '/CN=localhost'
-```
-
-Run server (will auto-detect SSL certificates):
-
-```bash
-poetry run python run.py
-```
-
-Server runs on `https://0.0.0.0:3000`
 
 ## Usage
 
@@ -95,12 +95,25 @@ Use the header buttons to switch between modes:
 
 ## Development
 
+### Available Poetry Commands
+
+```bash
+# Run development server
+poetry run poe dev
+
+# Run production server with Gunicorn
+poetry run poe prod
+
+# Run code linting and formatting
+poetry run poe ruff
+```
+
 ### Code Formatting & Linting
 
 The project uses [Ruff](https://github.com/astral-sh/ruff) for linting and formatting:
 
 ```bash
-# Run linter and formatter
+# Run linter and formatter (auto-fix issues)
 poetry run poe ruff
 
 # Or run individually
@@ -108,24 +121,37 @@ poetry run ruff check . --fix
 poetry run ruff format .
 ```
 
-### Configuration
+### Ruff Configuration
 
 Ruff is configured in `pyproject.toml` with:
 - Line length: 100 characters
 - Python 3.12 target
 - Auto-fixing enabled
-- Standard Python best practices
+- Standard Python best practices (pycodestyle, pyflakes, isort, pep8-naming, pyupgrade, flake8-bugbear)
+
+### CI/CD
+
+GitHub Actions workflow automatically runs on pull requests:
+- **PR Check**: Runs `poetry run poe ruff` to validate code quality
+- Triggers on: Pull requests and pushes to `main`/`master` branches
+- Configuration: `.github/workflows/pr-check.yml`
 
 ## Technical Details
 
 ### Dependencies
 
+**Production:**
 - **Flask**: Web framework
 - **Flask-SocketIO**: WebSocket support for real-time communication
 - **python-socketio**: Socket.IO Python client/server
 - **Marshmallow**: Data validation and serialization
 - **cachetools**: TTL-based cache for channel management
+- **Gunicorn**: Production WSGI server
+- **Eventlet**: Async worker for WebSocket support
+
+**Development:**
 - **Ruff**: Fast Python linter and formatter
+- **Poethepoet**: Task runner for Poetry
 
 ### Channel Management
 
