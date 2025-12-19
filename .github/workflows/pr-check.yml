@@ -39,3 +39,13 @@ jobs:
 
       - name: Run Ruff linter
         run: poetry run poe ruff
+
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t broadcast-app:test .

@@ -1,0 +1,54 @@
+name: Deploy to Cloud Build
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  release:
+    types: [published]
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: us-central1
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Submit to Cloud Build
+        run: |
+          gcloud builds submit \
+            --config=cloudbuild.yaml \
+            --substitutions=COMMIT_SHA=${{ github.sha }} \
+            --project=${{ env.PROJECT_ID }}
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: Production Release ${{ github.run_number }}
+          body: |
+            Automated deployment to production environment
+            
+            **Commit:** ${{ github.sha }}
+            **Branch:** ${{ github.ref_name }}
+            **Deployed to:** Cloud Run (production)
+          draft: false
+          prerelease: false
