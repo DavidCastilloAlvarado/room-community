@@ -2,7 +2,7 @@
 ARG PYTHON_VERSION_SLIM=3.12-slim-bullseye
 ARG PYTHON_VERSION=3.12-bullseye
 
-# define an alias for the specfic python version used in this file.
+# define an alias for the specific python version used in this file.
 FROM public.ecr.aws/docker/library/python:${PYTHON_VERSION} AS builder
 
 WORKDIR /app
