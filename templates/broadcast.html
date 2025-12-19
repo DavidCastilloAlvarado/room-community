@@ -8,117 +8,385 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Google Sans', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #202124;
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            color: white;
+            color: #e8eaed;
+            overflow: hidden;
         }
         
         .container {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            max-width: 1200px;
-            width: 100%;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            position: relative;
         }
         
-        h1 { text-align: center; margin-bottom: 20px; font-size: 2.5em; }
-        
-        .role { text-align: center; font-size: 1.3em; font-weight: bold; margin-bottom: 15px; }
-        .broadcaster { color: #ff4444; }
-        .viewer { color: #44ff44; }
-        
-        .status {
-            text-align: center;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 10px;
-            margin-bottom: 20px;
+        .header {
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #202124;
+            border-bottom: 1px solid #3c4043;
         }
         
-        .live {
-            display: inline-block;
-            background: #ff4444;
-            padding: 8px 20px;
-            border-radius: 25px;
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .logo {
+            font-size: 1.5em;
+            font-weight: 500;
+        }
+        
+        .channel-badge {
+            background: #ea4335;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 16px;
+            font-size: 0.85em;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
             animation: pulse 2s infinite;
         }
         
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.1); }
+        }
+        
+        .role-badge {
+            padding: 6px 16px;
+            border-radius: 16px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+        
+        .broadcaster { background: #ea4335; color: white; }
+        .viewer { background: #34a853; color: white; }
+        
+        .video-area {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            position: relative;
+            background: #000;
+            overflow: hidden;
         }
         
         .video-container {
             position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
             background: #000;
-            border-radius: 15px;
+            border-radius: 12px;
             overflow: hidden;
-            min-height: 450px;
             display: flex;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
         }
         
         video {
             width: 100%;
-            max-height: 70vh;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
         }
         
-        .controls {
+        .waiting-state {
             text-align: center;
-            margin-top: 20px;
+            color: #9aa0a6;
+            font-size: 1.1em;
+        }
+        
+        .controls-bar {
+            flex-shrink: 0;
+            padding: 24px;
+            background: #202124;
+            border-top: 1px solid #3c4043;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
         }
         
         button {
-            background: #4CAF50;
-            color: white;
+            background: #3c4043;
+            color: #e8eaed;
             border: none;
-            padding: 15px 50px;
-            font-size: 1.2em;
-            border-radius: 30px;
+            padding: 16px 32px;
+            font-size: 0.95em;
+            border-radius: 24px;
             cursor: pointer;
-            font-weight: bold;
-            transition: 0.3s;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
-        button:hover { background: #45a049; transform: scale(1.05); }
-        button:disabled { background: #666; cursor: not-allowed; }
+        button:hover {
+            background: #5f6368;
+        }
         
-        .info {
-            margin-top: 20px;
+        button:disabled {
+            background: #3c4043;
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        button.primary {
+            background: #1a73e8;
+            color: white;
+        }
+        
+        button.primary:hover {
+            background: #1765cc;
+        }
+        
+        button.danger {
+            background: #ea4335;
+            color: white;
+        }
+        
+        button.danger:hover {
+            background: #d33b2c;
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            background: rgba(32, 33, 36, 0.95);
+            backdrop-filter: blur(20px);
             padding: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            line-height: 1.8;
+            border-radius: 12px;
+            max-width: 320px;
+            border: 1px solid #3c4043;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            z-index: 10;
         }
         
-        .hidden { display: none; }
+        .info-panel h3 {
+            font-size: 1em;
+            margin-bottom: 12px;
+            color: #e8eaed;
+            font-weight: 500;
+        }
+        
+        .info-panel p, .info-panel div {
+            font-size: 0.9em;
+            color: #9aa0a6;
+            line-height: 1.6;
+            margin: 8px 0;
+        }
+        
+        .channel-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .channel-item {
+            background: #3c4043;
+            padding: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        
+        .channel-item:hover {
+            background: #5f6368;
+            border-color: #8ab4f8;
+        }
+        
+        .channel-input {
+            width: 100%;
+            padding: 12px;
+            background: #3c4043;
+            border: 1px solid #5f6368;
+            border-radius: 8px;
+            color: #e8eaed;
+            font-size: 0.95em;
+            margin-top: 12px;
+        }
+        
+        .channel-input:focus {
+            outline: none;
+            border-color: #8ab4f8;
+        }
+        
+        .mode-switch {
+            flex-shrink: 0;
+            text-align: center;
+            padding: 16px;
+            font-size: 0.85em;
+            background: #202124;
+        }
+        
+        .mode-switch a {
+            color: #8ab4f8;
+            text-decoration: none;
+            margin: 0 8px;
+        }
+        
+        .mode-switch a:hover {
+            text-decoration: underline;
+        }
+        
+        .hidden { display: none !important; }
+        
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .header {
+                padding: 12px 16px;
+                flex-wrap: wrap;
+            }
+            
+            .logo {
+                font-size: 1.2em;
+            }
+            
+            .channel-badge {
+                font-size: 0.75em;
+                padding: 4px 12px;
+            }
+            
+            .role-badge {
+                font-size: 0.75em;
+                padding: 4px 12px;
+            }
+            
+            .video-area {
+                padding: 12px;
+            }
+            
+            .video-container {
+                border-radius: 8px;
+            }
+            
+            .controls-bar {
+                padding: 16px;
+                flex-wrap: wrap;
+            }
+            
+            button {
+                padding: 14px 24px;
+                font-size: 0.9em;
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .info-panel {
+                top: 12px;
+                right: 12px;
+                left: 12px;
+                max-width: none;
+                padding: 16px;
+            }
+            
+            .mode-switch {
+                padding: 12px;
+                font-size: 0.8em;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header-left {
+                gap: 8px;
+            }
+            
+            .logo {
+                font-size: 1em;
+            }
+            
+            .video-area {
+                padding: 8px;
+            }
+            
+            .controls-bar {
+                padding: 12px;
+                gap: 8px;
+            }
+            
+            button {
+                padding: 12px 20px;
+                font-size: 0.85em;
+            }
+        }
+        
+        /* Landscape mode on mobile */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .video-area {
+                padding: 8px;
+            }
+            
+            .header {
+                padding: 8px 16px;
+            }
+            
+            .controls-bar {
+                padding: 12px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📹🔊 Live Broadcast</h1>
-        <div id="role" class="role"></div>
-        <div id="status" class="status">Connecting...</div>
-        
-        <div class="video-container">
-            <video id="localVideo" class="hidden" autoplay muted playsinline></video>
-            <video id="remoteVideo" class="hidden" autoplay playsinline></video>
-            <div id="waiting">⏳ Waiting...</div>
+        <div class="header">
+            <div class="header-left">
+                <div class="logo">📹 Broadcast</div>
+                <div id="channelBadge" class="channel-badge hidden">
+                    <span class="status-dot"></span>
+                    <span id="channelText">LIVE</span>
+                </div>
+            </div>
+            <div id="roleBadge" class="role-badge"></div>
         </div>
         
-        <div class="controls">
-            <button id="btn" disabled>LOADING...</button>
+        <div class="video-area">
+            <div class="video-container">
+                <video id="localVideo" class="hidden" autoplay muted playsinline></video>
+                <video id="remoteVideo" class="hidden" autoplay playsinline></video>
+                <div id="waiting" class="waiting-state">⏳ Initializing...</div>
+            </div>
+            
+            <div id="infoPanel" class="info-panel hidden">
+                <h3>📺 Channel Information</h3>
+                <div id="info"></div>
+            </div>
         </div>
         
-        <div class="info" id="info"></div>
+        <div class="controls-bar">
+            <button id="btn" disabled>Loading...</button>
+            <button id="stopBtn" class="danger hidden">Stop Broadcasting</button>
+        </div>
+        
+        <div class="mode-switch">
+            <a href="?broadcaster=true">Broadcaster Mode</a> • 
+            <a href="?viewer=true">Viewer Mode</a>
+        </div>
     </div>
     
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
@@ -139,73 +407,177 @@
         const localVideo = document.getElementById('localVideo');
         const remoteVideo = document.getElementById('remoteVideo');
         const btn = document.getElementById('btn');
-        const status = document.getElementById('status');
-        const role = document.getElementById('role');
+        const stopBtn = document.getElementById('stopBtn');
+        const roleBadge = document.getElementById('roleBadge');
         const info = document.getElementById('info');
+        const infoPanel = document.getElementById('infoPanel');
         const waiting = document.getElementById('waiting');
+        const channelBadge = document.getElementById('channelBadge');
+        const channelText = document.getElementById('channelText');
         
         socket.on('client_id', (data) => {
             clientId = data.id;
             checkRole();
         });
         
+        let channelId = null;
+        
         function checkRole() {
             const params = new URLSearchParams(window.location.search);
             const forceViewer = params.get('viewer') === 'true';
+            const forceBroadcaster = params.get('broadcaster') === 'true';
+            channelId = params.get('channel') || null;
             
-            if (forceViewer) {
+            if (forceBroadcaster) {
+                socket.emit('join_as_broadcaster', { channel_id: channelId });
+            } else if (forceViewer) {
                 setupViewer();
             } else {
-                // First connection is broadcaster
-                socket.emit('join_as_broadcaster');
+                // Default: broadcaster
+                socket.emit('join_as_broadcaster', { channel_id: channelId });
             }
         }
         
-        socket.on('broadcaster_ready', () => {
+        socket.on('broadcaster_ready', (data) => {
             isBroadcaster = true;
-            role.textContent = '📹 BROADCASTER';
-            role.className = 'role broadcaster';
-            status.textContent = 'Ready to broadcast';
-            btn.textContent = 'START BROADCASTING';
+            channelId = data.channel_id;
+            roleBadge.textContent = '📹 Broadcaster';
+            roleBadge.className = 'role-badge broadcaster';
+            btn.textContent = 'Start Broadcasting';
+            btn.className = 'primary';
             btn.disabled = false;
-            info.innerHTML = '✅ You are the broadcaster<br>📱 Share this URL with viewers: <strong>' + window.location.origin + '?viewer=true</strong>';
+            channelBadge.classList.remove('hidden');
+            channelText.textContent = channelId;
+            const viewerUrl = window.location.origin + '?viewer=true&channel=' + channelId;
+            infoPanel.classList.remove('hidden');
+            info.innerHTML = '<p><strong>Channel:</strong> ' + channelId + '</p><p><strong>Viewer URL:</strong><br><a href="' + viewerUrl + '" style="color:#8ab4f8;word-break:break-all;">' + viewerUrl + '</a></p>';
         });
         
         socket.on('error', (data) => {
-            status.textContent = '⚠️ ' + data.message;
-            setupViewer();
+            if (data.can_takeover) {
+                infoPanel.classList.remove('hidden');
+                info.innerHTML = '<p style="color:#f28b82;">⚠️ ' + data.message + '</p><p>Another device is broadcasting. Click below to take over.</p>';
+                btn.textContent = 'Take Over as Broadcaster';
+                btn.className = 'danger';
+                btn.disabled = false;
+                btn.onclick = () => {
+                    socket.emit('join_as_broadcaster', { force: true });
+                };
+            } else {
+                infoPanel.classList.remove('hidden');
+                info.innerHTML = '<p style="color:#f28b82;">⚠️ ' + data.message + '</p>';
+                setupViewer();
+            }
+        });
+        
+        socket.on('broadcaster_replaced', () => {
+            infoPanel.classList.remove('hidden');
+            info.innerHTML = '<p style="color:#f28b82;">❌ You have been replaced by another broadcaster</p>';
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localVideo.classList.add('hidden');
+            }
+            channelBadge.classList.add('hidden');
         });
         
         function setupViewer() {
             isBroadcaster = false;
-            role.textContent = '👁️ VIEWER';
-            role.className = 'role viewer';
-            socket.emit('join_as_viewer');
+            roleBadge.textContent = '👁️ Viewer';
+            roleBadge.className = 'role-badge viewer';
+            socket.emit('join_as_viewer', { channel_id: channelId });
         }
         
+        socket.on('channel_list', (data) => {
+            infoPanel.classList.remove('hidden');
+            if (data.channels.length === 0) {
+                info.innerHTML = '<p style="text-align:center;color:#9aa0a6;margin-bottom:20px;">No broadcasts available right now.</p>' +
+                    '<div style="margin-top:20px;">' +
+                    '<input type="text" id="channelInput" placeholder="Enter channel ID" style="width:100%;padding:12px;font-size:14px;border-radius:8px;border:1px solid #5f6368;background:#3c4043;color:#e8eaed;font-family:inherit;box-sizing:border-box;">' +
+                    '</div>';
+                btn.textContent = 'Join Channel';
+                btn.className = 'primary';
+                btn.disabled = false;
+                btn.onclick = () => {
+                    const inputChannelId = document.getElementById('channelInput').value.trim();
+                    if (inputChannelId) {
+                        channelId = inputChannelId;
+                        socket.emit('join_as_viewer', { channel_id: channelId });
+                    }
+                };
+            } else {
+                const formatTime = (seconds) => {
+                    if (seconds < 60) return `${seconds}s`;
+                    const mins = Math.floor(seconds / 60);
+                    if (mins < 60) return `${mins}m`;
+                    const hrs = Math.floor(mins / 60);
+                    return `${hrs}h ${mins % 60}m`;
+                };
+                const channelButtons = data.channels.map(c => 
+                    `<button onclick="joinChannel('${c.id}')" style="display:block;width:100%;padding:16px;margin:8px 0;background:#3c4043;color:#e8eaed;border:2px solid #5f6368;border-radius:12px;cursor:pointer;font-size:15px;font-family:inherit;text-align:left;transition:all 0.2s;" onmouseover="this.style.borderColor='#8ab4f8'" onmouseout="this.style.borderColor='#5f6368'">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <strong>📺 ${c.id}</strong>
+                            <span style="color:#8ab4f8;font-size:12px;">🔴 LIVE</span>
+                        </div>
+                        <div style="margin-top:4px;font-size:13px;color:#9aa0a6;">Started ${formatTime(c.age_seconds)} ago</div>
+                    </button>`
+                ).join('');
+                info.innerHTML = '<p style="font-weight:500;margin-bottom:16px;">Select a broadcast to watch:</p>' + channelButtons +
+                    '<div style="margin-top:20px;padding-top:20px;border-top:1px solid #5f6368;">' +
+                    '<p style="font-size:14px;color:#9aa0a6;margin-bottom:8px;">Or enter channel ID:</p>' +
+                    '<div style="display:flex;gap:8px;">' +
+                    '<input type="text" id="channelInput" placeholder="Enter channel ID" style="flex:1;padding:12px;font-size:14px;border-radius:8px;border:1px solid #5f6368;background:#3c4043;color:#e8eaed;font-family:inherit;">' +
+                    '<button onclick="joinManual()" style="padding:12px 24px;background:#8ab4f8;color:#202124;border:none;border-radius:8px;cursor:pointer;font-weight:500;font-family:inherit;">Join</button>' +
+                    '</div></div>';
+                btn.classList.add('hidden');
+            }
+        });
+        
+        window.joinChannel = (cid) => {
+            channelId = cid;
+            socket.emit('join_as_viewer', { channel_id: channelId });
+            infoPanel.classList.add('hidden');
+            waiting.textContent = 'Connecting to channel...';
+            channelBadge.classList.remove('hidden');
+            channelText.textContent = channelId;
+        };
+        
+        window.joinManual = () => {
+            const inputChannelId = document.getElementById('channelInput').value.trim();
+            if (inputChannelId) {
+                channelId = inputChannelId;
+                socket.emit('join_as_viewer', { channel_id: channelId });
+                infoPanel.classList.add('hidden');
+                waiting.textContent = 'Connecting to channel...';
+                channelBadge.classList.remove('hidden');
+                channelText.textContent = channelId;
+            }
+        };
+        
         socket.on('waiting_for_broadcaster', () => {
-            status.textContent = 'Waiting for broadcaster...';
-            info.textContent = '⏳ No active broadcast. Waiting for broadcaster to start.';
-            btn.textContent = 'WAITING';
-            btn.disabled = true;
+            waiting.textContent = '⏳ Waiting for broadcaster to start...';
+            infoPanel.classList.add('hidden');
         });
         
         let broadcasterSocketId = null;
         
         socket.on('broadcaster_available', async (data) => {
             broadcasterSocketId = data.broadcaster_id;
-            status.textContent = 'Broadcaster found!';
-            btn.textContent = 'WATCH STREAM';
-            btn.disabled = false;
-            info.textContent = '✅ Broadcaster is online. Click button to watch!';
+            channelId = data.channel_id;
+            channelBadge.classList.remove('hidden');
+            channelText.textContent = channelId;
+            waiting.textContent = 'Connecting to stream...';
+            
+            // Auto-start watching immediately
+            await startWatching();
         });
         
-        socket.on('broadcaster_joined', (data) => {
+        socket.on('broadcaster_joined', async (data) => {
             if (!isBroadcaster) {
                 broadcasterSocketId = data.id;
-                status.textContent = 'Broadcaster online!';
-                btn.textContent = 'WATCH STREAM';
-                btn.disabled = false;
+                waiting.textContent = 'Connecting to stream...';
+                
+                // Auto-start watching immediately
+                await startWatching();
             }
         });
         
@@ -227,16 +599,53 @@
                 localVideo.srcObject = localStream;
                 localVideo.classList.remove('hidden');
                 waiting.classList.add('hidden');
+                infoPanel.classList.add('hidden');
                 
-                status.innerHTML = '<span class="live">🔴 BROADCASTING</span>';
-                btn.textContent = 'BROADCASTING...';
-                btn.disabled = true;
-                info.innerHTML = '🔴 You are LIVE!<br>📊 Stream: Video + Audio<br>📱 Viewer URL: <strong>' + window.location.origin + '?viewer=true</strong>';
+                btn.classList.add('hidden');
+                stopBtn.classList.remove('hidden');
+                const viewerUrl = window.location.origin + '?viewer=true&channel=' + channelId;
+                info.innerHTML = '🔴 You are LIVE!<br>📺 Channel ID: <strong>' + channelId + '</strong><br>📊 Stream: Video + Audio<br>📱 Viewer URL: <strong>' + viewerUrl + '</strong>';
                 
             } catch (err) {
                 alert('Could not access camera/microphone: ' + err.message);
             }
         }
+        
+        function stopBroadcasting() {
+            if (localStream) {
+                localStream.getTracks().forEach(track => {
+                    track.stop();
+                    console.log('Stopped track:', track.kind);
+                });
+                localStream = null;
+            }
+            
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            
+            localVideo.srcObject = null;
+            localVideo.classList.add('hidden');
+            waiting.classList.remove('hidden');
+            waiting.textContent = 'Broadcast stopped';
+            
+            stopBtn.classList.add('hidden');
+            btn.classList.remove('hidden');
+            btn.textContent = 'Start Broadcasting';
+            btn.className = 'primary';
+            btn.disabled = false;
+            
+            infoPanel.classList.remove('hidden');
+            info.innerHTML = '<p style="color:#f28b82;">⏹️ Broadcast stopped</p><p style="color:#9aa0a6;">Click "Start Broadcasting" to go live again</p>';
+            
+            // Notify server and viewers
+            socket.emit('stop_broadcast', { channel_id: channelId });
+        }
+        
+        stopBtn.onclick = () => {
+            stopBroadcasting();
+        };
         
         async function startWatching() {
             try {
@@ -256,9 +665,8 @@
                     remoteVideo.srcObject.addTrack(event.track);
                     remoteVideo.classList.remove('hidden');
                     waiting.classList.add('hidden');
-                    status.innerHTML = '<span class="live">🔴 WATCHING LIVE</span>';
                     btn.disabled = true;
-                    info.textContent = '📺 Watching live broadcast with audio!';
+                    btn.classList.add('hidden');
                 };
                 
                 peerConnection.onicecandidate = (event) => {
@@ -273,8 +681,7 @@
                 peerConnection.oniceconnectionstatechange = () => {
                     console.log('ICE state:', peerConnection.iceConnectionState);
                     if (peerConnection.iceConnectionState === 'failed') {
-                        waiting.textContent = 'Connection failed. Try again.';
-                        info.textContent = '❌ Connection failed. Refresh and try again.';
+                        waiting.textContent = '❌ Connection failed. Refresh and try again.';
                     }
                 };
                 
@@ -348,11 +755,27 @@
         
         socket.on('broadcaster_disconnected', () => {
             if (!isBroadcaster) {
-                status.textContent = 'Broadcaster disconnected';
-                info.textContent = '⚠️ The broadcaster has gone offline.';
+                if (remoteVideo.srcObject) {
+                    remoteVideo.srcObject.getTracks().forEach(track => track.stop());
+                }
                 remoteVideo.classList.add('hidden');
                 waiting.classList.remove('hidden');
-                waiting.textContent = 'Broadcast ended';
+                waiting.textContent = '❌ Broadcaster disconnected';
+            }
+        });
+        
+        socket.on('broadcaster_stopped', (data) => {
+            if (!isBroadcaster) {
+                if (remoteVideo.srcObject) {
+                    remoteVideo.srcObject.getTracks().forEach(track => track.stop());
+                }
+                remoteVideo.srcObject = null;
+                remoteVideo.classList.add('hidden');
+                waiting.classList.remove('hidden');
+                waiting.textContent = '⏸️ Broadcaster stopped the stream';
+                
+                infoPanel.classList.remove('hidden');
+                info.innerHTML = '<p style="color:#f28b82;">⏸️ Broadcast ended</p><p style="color:#9aa0a6;">The broadcaster has stopped streaming</p>';
             }
         });
     </script>
