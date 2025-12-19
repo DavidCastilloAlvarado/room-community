@@ -13,6 +13,59 @@ python-socketio = "^5.15.1"
 cachetools = "^6.2.4"
 marshmallow = "^4.1.1"
 
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.8.4"
+poethepoet = "^0.29.0"
+
+[tool.poe.tasks]
+ruff.shell = "ruff check . --fix && ruff format ."
+
+[tool.ruff]
+# Set line length
+line-length = 100
+
+# Target Python 3.12
+target-version = "py312"
+
+# Enable auto-fixing
+fix = true
+
+# Exclude common directories
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "*.egg-info",
+]
+
+[tool.ruff.lint]
+# Enable recommended rules
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "SIM",  # flake8-simplify
+]
+
+# Ignore specific rules
+ignore = [
+    "E501",  # line too long (handled by formatter)
+]
+
+[tool.ruff.format]
+# Use double quotes
+quote-style = "double"
+
+# Indent with spaces
+indent-style = "space"
+
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
