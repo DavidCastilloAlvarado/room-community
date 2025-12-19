@@ -12,7 +12,7 @@ dist/
 build/
 
 # Poetry
-poetry.lock
+# poetry.lock
 
 # IDE
 .vscode/
